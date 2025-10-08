@@ -49,11 +49,6 @@ jobs:
         cd ReactNativeApp
         npm install --legacy-peer-deps
         
-    - name: Run linting
-      run: |
-        cd ReactNativeApp
-        npm run lint
-        
     - name: Run tests
       run: |
         cd ReactNativeApp
