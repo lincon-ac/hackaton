@@ -101,21 +101,50 @@ jobs:
 
       - name: Install Docker
         run: |
-          echo "Installing and configuring Docker..."
+          echo "Installing Docker using convenience script..."
           
-          # Remover qualquer instalação existente
-          sudo apt-get remove -y docker docker-engine docker.io containerd runc docker-ce docker-ce-cli containerd.io || true
-          sudo apt-get autoremove -y
+          # Limpar instalações antigas
+          sudo rm -rf /var/lib/docker /etc/docker
+          sudo rm -f /usr/bin/docker /usr/bin/docker-compose
           
-          # Instalar dependências
-          sudo apt-get update
-          sudo apt-get install -y ca-certificates curl gnupg
+          # Baixar e executar script de instalação do Docker
+          curl -fsSL https://get.docker.com -o get-docker.sh
+          CHANNEL=stable sh get-docker.sh
           
-          # Configurar repositório Docker de forma não interativa
-          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+          # Configurar Docker daemon
+          sudo mkdir -p /etc/docker
+          echo '{
+            "exec-opts": ["native.cgroupdriver=systemd"],
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "100m"
+            },
+            "storage-driver": "overlay2"
+          }' | sudo tee /etc/docker/daemon.json
           
-          # Adicionar repositório ao sources.list
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          # Criar diretório para socket
+          sudo mkdir -p /var/run
+          sudo ln -s /run/docker.sock /var/run/docker.sock || true
+          
+          # Iniciar serviço
+          sudo systemctl enable docker || true
+          sudo systemctl daemon-reload || true
+          sudo systemctl restart docker || true
+          
+          # Aguardar inicialização
+          echo "Aguardando Docker iniciar..."
+          for i in {1..30}; do
+            if sudo docker info >/dev/null 2>&1; then
+              echo "Docker está rodando"
+              break
+            fi
+            echo "Aguardando... ($i/30)"
+            sleep 2
+          done
+          
+          # Verificar instalação
+          sudo docker version
+          sudo docker info
           
           # Atualizar e instalar Docker
           sudo apt-get update
