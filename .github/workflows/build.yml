@@ -12,17 +12,32 @@ jobs:
     
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
     
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '8.0.x'
     
+    - name: Install SonarScanner for .NET
+      run: dotnet tool install --global dotnet-sonarscanner
+    
     - name: Restore dependencies
       run: dotnet restore Time_2.sln
     
+    - name: Begin SonarQube Analysis
+      run: |
+        dotnet sonarscanner begin \
+          /k:"hackaton-dotnet" \
+          /d:sonar.host.url="http://172.184.118.26:9000" \
+          /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+    
     - name: Build
       run: dotnet build Time_2.sln --no-restore --configuration Release
+    
+    - name: End SonarQube Analysis
+      run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
   build-react-native:
     runs-on: ubuntu-latest
@@ -33,6 +48,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
     
     - name: Setup Node.js
       uses: actions/setup-node@v3
@@ -44,5 +61,14 @@ jobs:
     - name: Install dependencies
       run: npm install
     
-    - name: Check package
-      run: npm list || true
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@master
+      with:
+        projectBaseDir: ReactNativeApp
+        args: >
+          -Dsonar.projectKey=hackaton-react-native
+          -Dsonar.sources=.
+          -Dsonar.exclusions=node_modules/**,coverage/**
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: http://172.184.118.26:9000
