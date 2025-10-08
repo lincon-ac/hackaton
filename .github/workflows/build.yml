@@ -98,6 +98,38 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 1
+
+      - name: Install Docker
+        run: |
+          echo "Installing Docker..."
+          
+          # Limpar completamente configurações antigas do Docker
+          sudo rm -rf /etc/apt/sources.list.d/docker*.list || true
+          sudo rm -rf /etc/apt/keyrings/docker*.gpg || true
+          sudo rm -rf /etc/apt/trusted.gpg.d/docker*.gpg || true
+          
+          # Remover instalações antigas do Docker
+          sudo apt-get remove --purge -y docker-ce docker-ce-cli containerd.io docker docker-engine docker.io containerd runc || true
+          sudo apt-get autoremove -y
+          sudo apt-get clean
+          
+          # Instalar Docker usando o script oficial
+          curl -fsSL https://get.docker.com -o get-docker.sh
+          DEBIAN_FRONTEND=noninteractive sudo sh get-docker.sh
+          
+          # Iniciar o Docker daemon
+          sudo systemctl start docker || sudo dockerd > /dev/null 2>&1 &
+          
+          # Aguardar o Docker iniciar
+          echo "Aguardando o Docker iniciar..."
+          for i in {1..30}; do
+            if sudo docker info >/dev/null 2>&1; then
+              echo "Docker está rodando"
+              break
+            fi
+            echo "Aguardando... ($i/30)"
+            sleep 2
+          done
           
       - name: Install Docker
         run: |
