@@ -80,16 +80,16 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build backend Docker image
         run: |
-          docker build -t hackaton-backend:latest ./DotNetApp
+          sudo docker build -t hackaton-backend:latest ./DotNetApp
       - name: Build frontend Docker image
         run: |
-          docker build -t hackaton-frontend:latest ./ReactNativeApp
+          sudo docker build -t hackaton-frontend:latest ./ReactNativeApp
       - name: Run backend container on port 80
         run: |
-          docker run -d --name hackaton-backend -p 80:80 hackaton-backend:latest
+          sudo docker run -d --name hackaton-backend -p 80:80 hackaton-backend:latest
       - name: Run frontend container on port 81
         run: |
-          docker run -d --name hackaton-frontend -p 81:80 hackaton-frontend:latest
+          sudo docker run -d --name hackaton-frontend -p 81:80 hackaton-frontend:latest
       - name: List running containers
         run: |
-          docker ps
+          sudo docker ps
