@@ -75,7 +75,7 @@ jobs:
 
   docker-build-run:
     runs-on: sonar
-    needs: [build-backend, build-frontend]
+    needs: [build-dotnet, build-react-native]
     steps:
       - uses: actions/checkout@v3
       - name: Build backend Docker image
