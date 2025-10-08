@@ -39,6 +39,22 @@ jobs:
       - name: End SonarQube Analysis
         run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
+      # Build e Push da imagem Docker do Backend
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./DotNetApp
+          push: false
+          load: true
+          tags: hackaton-backend:latest
+
+      - name: Run Backend Container
+        run: |
+          docker run -d --name hackaton-backend -p 80:80 hackaton-backend:latest
+
   build-react-native:
     runs-on: ubuntu-latest
 
