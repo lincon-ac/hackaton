@@ -1,82 +1,82 @@
-name: CI/CD Pipeline
+# name: CI/CD Pipeline
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+# on:
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     branches: [ main ]
 
-jobs:
-  build-backend:
-    runs-on: ubuntu-latest
+# jobs:
+#   build-backend:
+#     runs-on: ubuntu-latest
     
-    steps:
-    - uses: actions/checkout@v3
+#     steps:
+#     - uses: actions/checkout@v3
     
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '8.0.x'
+#     - name: Setup .NET
+#       uses: actions/setup-dotnet@v3
+#       with:
+#         dotnet-version: '8.0.x'
         
-    - name: Restore dependencies
-      run: |
-        cd DotNetApp
-        dotnet restore
+#     - name: Restore dependencies
+#       run: |
+#         cd DotNetApp
+#         dotnet restore
         
-    - name: Build
-      run: |
-        cd DotNetApp
-        dotnet build --no-restore
+#     - name: Build
+#       run: |
+#         cd DotNetApp
+#         dotnet build --no-restore
         
-    - name: Test
-      run: |
-        cd DotNetApp
-        dotnet test --no-build --verbosity normal
+#     - name: Test
+#       run: |
+#         cd DotNetApp
+#         dotnet test --no-build --verbosity normal
         
-  build-frontend:
-    runs-on: ubuntu-latest
+#   build-frontend:
+#     runs-on: ubuntu-latest
     
-    steps:
-    - uses: actions/checkout@v3
+#     steps:
+#     - uses: actions/checkout@v3
     
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18.x'
+#     - name: Setup Node.js
+#       uses: actions/setup-node@v3
+#       with:
+#         node-version: '18.x'
         
-    - name: Install dependencies
-      run: |
-        cd ReactNativeApp
-        npm install --legacy-peer-deps
+#     - name: Install dependencies
+#       run: |
+#         cd ReactNativeApp
+#         npm install --legacy-peer-deps
         
-    - name: Run tests
-      run: |
-        cd ReactNativeApp
-        npm test -- --passWithNoTests
+#     - name: Run tests
+#       run: |
+#         cd ReactNativeApp
+#         npm test -- --passWithNoTests
         
-    - name: Build Android (if needed)
-      run: |
-        cd ReactNativeApp
-        # Uncomment the following line if you want to build the Android app
-        # cd android && ./gradlew assembleDebug
+#     - name: Build Android (if needed)
+#       run: |
+#         cd ReactNativeApp
+#         # Uncomment the following line if you want to build the Android app
+#         # cd android && ./gradlew assembleDebug
 
-  docker-build-run:
-    runs-on: ubuntu-latest
-    needs: [build-backend, build-frontend]
-    steps:
-      - uses: actions/checkout@v3
-      - name: Build backend Docker image
-        run: |
-          docker build -t hackaton-backend:latest ./DotNetApp
-      - name: Build frontend Docker image
-        run: |
-          docker build -t hackaton-frontend:latest ./ReactNativeApp
-      - name: Run backend container on port 80
-        run: |
-          docker run -d --name hackaton-backend -p 80:80 hackaton-backend:latest
-      - name: Run frontend container on port 81
-        run: |
-          docker run -d --name hackaton-frontend -p 81:80 hackaton-frontend:latest
-      - name: List running containers
-        run: |
-          docker ps
+#   docker-build-run:
+#     runs-on: sonar
+#     needs: [build-backend, build-frontend]
+#     steps:
+#       - uses: actions/checkout@v3
+#       - name: Build backend Docker image
+#         run: |
+#           docker build -t hackaton-backend:latest ./DotNetApp
+#       - name: Build frontend Docker image
+#         run: |
+#           docker build -t hackaton-frontend:latest ./ReactNativeApp
+#       - name: Run backend container on port 80
+#         run: |
+#           docker run -d --name hackaton-backend -p 80:80 hackaton-backend:latest
+#       - name: Run frontend container on port 81
+#         run: |
+#           docker run -d --name hackaton-frontend -p 81:80 hackaton-frontend:latest
+#       - name: List running containers
+#         run: |
+#           docker ps

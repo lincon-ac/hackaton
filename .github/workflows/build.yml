@@ -2,73 +2,94 @@ name: Build .NET and React Native
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
   build-dotnet:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '8.0.x'
-    
-    - name: Install SonarScanner for .NET
-      run: dotnet tool install --global dotnet-sonarscanner
-    
-    - name: Restore dependencies
-      run: dotnet restore Time_2.sln
-    
-    - name: Begin SonarQube Analysis
-      run: |
-        dotnet sonarscanner begin \
-          /k:"hackaton-dotnet" \
-          /d:sonar.host.url="http://172.184.118.26:9000" \
-          /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
-    
-    - name: Build
-      run: dotnet build Time_2.sln --no-restore --configuration Release
-    
-    - name: End SonarQube Analysis
-      run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install SonarScanner for .NET
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Restore dependencies
+        run: dotnet restore Time_2.sln
+
+      - name: Begin SonarQube Analysis
+        run: |
+          dotnet sonarscanner begin \
+            /k:"hackaton-dotnet" \
+            /d:sonar.host.url="http://172.184.118.26:9000" \
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+      - name: Build
+        run: dotnet build Time_2.sln --no-restore --configuration Release
+
+      - name: End SonarQube Analysis
+        run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
   build-react-native:
     runs-on: ubuntu-latest
-    
+
     defaults:
       run:
         working-directory: ReactNativeApp
-    
+
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: ReactNativeApp/package.json
-    
-    - name: Install dependencies
-      run: npm install
-    
-    - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@master
-      with:
-        projectBaseDir: ReactNativeApp
-        args: >
-          -Dsonar.projectKey=hackaton-react-native
-          -Dsonar.sources=.
-          -Dsonar.exclusions=node_modules/**,coverage/**
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: http://172.184.118.26:9000
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: ReactNativeApp/package.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        with:
+          projectBaseDir: ReactNativeApp
+          args: >
+            -Dsonar.projectKey=hackaton-react-native
+            -Dsonar.sources=.
+            -Dsonar.exclusions=node_modules/**,coverage/**
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: http://172.184.118.26:9000
+
+  docker-build-run:
+    runs-on: sonar
+    needs: [build-backend, build-frontend]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build backend Docker image
+        run: |
+          docker build -t hackaton-backend:latest ./DotNetApp
+      - name: Build frontend Docker image
+        run: |
+          docker build -t hackaton-frontend:latest ./ReactNativeApp
+      - name: Run backend container on port 80
+        run: |
+          docker run -d --name hackaton-backend -p 80:80 hackaton-backend:latest
+      - name: Run frontend container on port 81
+        run: |
+          docker run -d --name hackaton-frontend -p 81:80 hackaton-frontend:latest
+      - name: List running containers
+        run: |
+          docker ps
