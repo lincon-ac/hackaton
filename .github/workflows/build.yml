@@ -77,6 +77,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@master
         with:
