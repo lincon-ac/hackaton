@@ -103,6 +103,40 @@ jobs:
           pwd
           ls -la
           
+      - name: Install Docker
+        run: |
+          echo "Installing Docker..."
+          # Atualizar pacotes
+          sudo apt-get update
+          
+          # Instalar dependências
+          sudo apt-get install -y \
+            apt-transport-https \
+            ca-certificates \
+            curl \
+            gnupg \
+            lsb-release
+
+          # Adicionar chave GPG oficial do Docker
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+          # Configurar repositório estável
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+            $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+          # Instalar Docker
+          sudo apt-get update
+          sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+
+          # Iniciar Docker
+          sudo systemctl start docker
+          sudo systemctl enable docker
+
+          # Verificar instalação
+          sudo docker --version
+          sudo docker info
+
       - name: Build backend Docker image
         run: |
           # Criar diretório temporário com permissões adequadas
