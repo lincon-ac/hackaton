@@ -93,10 +93,28 @@ jobs:
     runs-on: sonar
     needs: [build-dotnet, build-react-native]
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+          
+      - name: List workspace contents
+        run: |
+          pwd
+          ls -la
+          
       - name: Build backend Docker image
         run: |
-          sudo docker build -t hackaton-backend:latest ./DotNetApp
+          cd $GITHUB_WORKSPACE
+          echo "Building from directory: $(pwd)"
+          ls -la
+          if [ -d "DotNetApp" ]; then
+            sudo docker build -t hackaton-backend:latest ./DotNetApp
+          else
+            echo "DotNetApp directory not found in: $(pwd)"
+            exit 1
+          fi
+          
       - name: Build frontend Docker image
         run: |
           sudo docker build -t hackaton-frontend:latest ./ReactNativeApp
