@@ -101,36 +101,68 @@ jobs:
 
       - name: Install Docker
         run: |
-          echo "Installing Docker via snap..."
+          echo "Installing and configuring Docker..."
           
-          # Remover instalações antigas
-          sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
-          sudo apt-get remove -y docker-ce docker-ce-cli containerd.io || true
+          # Remover qualquer instalação existente
+          sudo apt-get remove -y docker docker-engine docker.io containerd runc docker-ce docker-ce-cli containerd.io || true
           sudo apt-get autoremove -y
           
-          # Limpar arquivos de configuração
-          sudo rm -rf /var/lib/docker
-          sudo rm -rf /etc/docker
-          sudo rm -rf /etc/apt/sources.list.d/docker.list
-          sudo rm -rf /etc/apt/sources.list.d/archive_uri-https_download_docker_com_linux_ubuntu-jammy.list
+          # Instalar dependências
+          sudo apt-get update
+          sudo apt-get install -y ca-certificates curl gnupg
           
-          # Instalar Docker via snap
-          sudo snap install docker
+          # Adicionar repositório oficial do Docker
+          sudo install -m 0755 -d /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo dd of=/etc/apt/keyrings/docker.asc
           
-          # Aguardar o serviço iniciar
-          echo "Aguardando o Docker iniciar..."
-          for i in {1..30}; do
-            if sudo snap services | grep docker.daemon | grep active >/dev/null 2>&1; then
+          # Adicionar repositório ao sources.list
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | sudo tee /etc/apt/sources.list.d/docker.list
+          
+          # Atualizar e instalar Docker
+          sudo apt-get update
+          sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin
+          
+          # Configurar Docker daemon
+          echo '{
+            "exec-opts": ["native.cgroupdriver=systemd"],
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "100m"
+            },
+            "storage-driver": "overlay2"
+          }' | sudo tee /etc/docker/daemon.json
+          
+          # Criar diretório para socket do Docker
+          sudo mkdir -p /var/run
+          sudo ln -s /run/docker.sock /var/run/docker.sock || true
+          
+          # Iniciar e habilitar serviço
+          sudo systemctl enable docker || true
+          sudo systemctl daemon-reload || true
+          sudo systemctl restart docker || true
+          
+          # Aguardar Docker iniciar (com mais tempo e verificações)
+          echo "Aguardando Docker iniciar..."
+          for i in {1..60}; do
+            if sudo docker info >/dev/null 2>&1; then
               echo "Docker está rodando"
+              sudo docker info
               break
             fi
-            echo "Aguardando... ($i/30)"
+            if [ $i -eq 60 ]; then
+              echo "Timeout esperando Docker iniciar. Tentando iniciar manualmente..."
+              sudo dockerd > /tmp/dockerd.log 2>&1 &
+              sleep 10
+            fi
+            echo "Aguardando... ($i/60)"
             sleep 2
           done
           
-          # Verificar instalação
+          # Verificar status final
+          echo "Status do Docker:"
+          sudo systemctl status docker || true
+          ls -la /var/run/docker.sock
           sudo docker version
-          echo "Docker instalado com sucesso"
           
       - name: Install Docker
         run: |
