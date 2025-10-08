@@ -105,15 +105,21 @@ jobs:
           
       - name: Build backend Docker image
         run: |
-          cd $GITHUB_WORKSPACE
-          echo "Building from directory: $(pwd)"
-          ls -la
-          if [ -d "DotNetApp" ]; then
-            sudo docker build -t hackaton-backend:latest ./DotNetApp
+          WORKSPACE_PATH=$(pwd)
+          echo "Workspace path: $WORKSPACE_PATH"
+          echo "Contents of DotNetApp:"
+          ls -la "$WORKSPACE_PATH/DotNetApp"
+          
+          echo "Verifying Dockerfile existence:"
+          if [ -f "$WORKSPACE_PATH/DotNetApp/Dockerfile" ]; then
+            echo "Dockerfile found"
           else
-            echo "DotNetApp directory not found in: $(pwd)"
+            echo "Dockerfile not found"
             exit 1
           fi
+          
+          echo "Building Docker image with absolute path..."
+          sudo docker build -t hackaton-backend:latest "$WORKSPACE_PATH/DotNetApp"
           
       - name: Build frontend Docker image
         run: |
