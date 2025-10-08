@@ -1,0 +1,68 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore dependencies
+      run: |
+        cd DotNetApp
+        dotnet restore
+        
+    - name: Build
+      run: |
+        cd DotNetApp
+        dotnet build --no-restore
+        
+    - name: Test
+      run: |
+        cd DotNetApp
+        dotnet test --no-build --verbosity normal
+        
+  build-frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+        cache-dependency-path: './ReactNativeApp/package-lock.json'
+        
+    - name: Install dependencies
+      run: |
+        cd ReactNativeApp
+        npm install
+        
+    - name: Run linting
+      run: |
+        cd ReactNativeApp
+        npm run lint
+        
+    - name: Run tests
+      run: |
+        cd ReactNativeApp
+        npm test
+        
+    - name: Build Android (if needed)
+      run: |
+        cd ReactNativeApp
+        # Uncomment the following line if you want to build the Android app
+        # cd android && ./gradlew assembleDebug
