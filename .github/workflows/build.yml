@@ -105,21 +105,38 @@ jobs:
           
       - name: Build backend Docker image
         run: |
-          WORKSPACE_PATH=$(pwd)
-          echo "Workspace path: $WORKSPACE_PATH"
-          echo "Contents of DotNetApp:"
-          ls -la "$WORKSPACE_PATH/DotNetApp"
+          # Criar diretório temporário
+          TEMP_DIR=$(mktemp -d)
+          echo "Temporary directory created at: $TEMP_DIR"
           
-          echo "Verifying Dockerfile existence:"
-          if [ -f "$WORKSPACE_PATH/DotNetApp/Dockerfile" ]; then
-            echo "Dockerfile found"
+          # Copiar arquivos para diretório temporário
+          echo "Copying files to temporary directory..."
+          cp -r DotNetApp/* $TEMP_DIR/
+          
+          # Verificar conteúdo
+          echo "Contents of temporary directory:"
+          ls -la $TEMP_DIR
+          
+          # Mudar para o diretório temporário
+          cd $TEMP_DIR
+          echo "Current working directory: $(pwd)"
+          
+          # Verificar Dockerfile
+          if [ -f "Dockerfile" ]; then
+            echo "Dockerfile found in temp directory"
+            cat Dockerfile
           else
-            echo "Dockerfile not found"
+            echo "Dockerfile not found in temp directory"
             exit 1
           fi
           
-          echo "Building Docker image with absolute path..."
-          sudo docker build -t hackaton-backend:latest "$WORKSPACE_PATH/DotNetApp"
+          # Construir imagem
+          echo "Building Docker image..."
+          sudo docker build -t hackaton-backend:latest .
+          
+          # Limpar diretório temporário
+          cd $GITHUB_WORKSPACE
+          rm -rf $TEMP_DIR
           
       - name: Build frontend Docker image
         run: |
