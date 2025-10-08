@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./DotNetApp
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.services.backend.loadbalancer.server.port=80"
+    networks:
+      - app-network
+    depends_on:
+      - traefik
+
+  frontend:
+    build:
+      context: ./ReactNativeApp
+      dockerfile: Dockerfile
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    networks:
+      - app-network
+    depends_on:
+      - backend
+      - traefik
+
+networks:
+  app-network:
+    driver: bridge
