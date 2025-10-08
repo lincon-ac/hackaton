@@ -103,21 +103,46 @@ jobs:
         run: |
           echo "Installing Docker using package download..."
           
-          # Remove old versions if exist
-          sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
+          # Remove existing Docker installations completely
+          sudo apt-get remove -y docker-ce docker-ce-cli containerd.io docker docker-engine docker.io containerd runc
+          sudo apt-get autoremove -y
+          sudo rm -rf /var/lib/docker /var/lib/containerd
           
-          # Download Docker package
-          wget https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/amd64/docker-ce_24.0.6-1~ubuntu.22.04~jammy_amd64.deb
-          wget https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/amd64/docker-ce-cli_24.0.6-1~ubuntu.22.04~jammy_amd64.deb
-          wget https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/amd64/containerd.io_1.6.24-1_amd64.deb
+          # Update package lists
+          sudo apt-get update
           
           # Install dependencies
-          sudo apt-get update
-          sudo apt-get install -y ./containerd.io_1.6.24-1_amd64.deb
-          sudo apt-get install -y ./docker-ce-cli_24.0.6-1~ubuntu.22.04~jammy_amd64.deb
-          sudo apt-get install -y ./docker-ce_24.0.6-1~ubuntu.22.04~jammy_amd64.deb
+          sudo apt-get install -y \
+            apt-transport-https \
+            ca-certificates \
+            curl \
+            gnupg \
+            lsb-release
+            
+          # Add Docker's official GPG key
+          sudo install -m 0755 -d /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg
+          sudo chmod a+r /etc/apt/keyrings/docker.gpg
           
-          # Start Docker daemon in background
+          # Add Docker repository
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+            $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+            
+          # Update package lists again
+          sudo apt-get update
+          
+          # Install Docker packages
+          sudo apt-get install -y --allow-downgrades \
+            docker-ce \
+            docker-ce-cli \
+            containerd.io \
+            docker-buildx-plugin \
+            docker-compose-plugin
+          
+          # Start Docker daemon
+          echo "Starting Docker daemon..."
+          sudo systemctl enable docker || true
           sudo systemctl start docker || sudo dockerd > /dev/null 2>&1 &
           
           # Wait for Docker to be available
@@ -127,13 +152,18 @@ jobs:
               echo "Docker is running"
               break
             fi
+            if [ $i -eq 30 ]; then
+              echo "Docker failed to start"
+              exit 1
+            fi
             echo "Waiting... ($i/30)"
-            sleep 1
+            sleep 2
           done
           
           # Verify installation
           sudo docker version
-          echo "Docker installation completed"
+          sudo docker info
+          echo "Docker installation completed successfully"
           
       - name: List workspace contents
         run: |
