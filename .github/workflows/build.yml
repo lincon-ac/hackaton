@@ -105,38 +105,46 @@ jobs:
           
       - name: Build backend Docker image
         run: |
-          # Criar diretório temporário
-          TEMP_DIR=$(mktemp -d)
-          echo "Temporary directory created at: $TEMP_DIR"
+          # Criar diretório temporário com permissões adequadas
+          TEMP_DIR="/tmp/docker-build"
+          sudo rm -rf $TEMP_DIR
+          sudo mkdir -p $TEMP_DIR
+          sudo chown -R $(id -u):$(id -g) $TEMP_DIR
+          echo "Build directory created at: $TEMP_DIR"
           
-          # Copiar arquivos para diretório temporário
-          echo "Copying files to temporary directory..."
-          cp -r DotNetApp/* $TEMP_DIR/
+          # Copiar arquivos com preservação de permissões
+          echo "Copying files to build directory..."
+          cp -rp DotNetApp/* $TEMP_DIR/
           
-          # Verificar conteúdo
-          echo "Contents of temporary directory:"
+          # Verificar permissões e conteúdo
+          echo "Directory permissions:"
           ls -la $TEMP_DIR
           
-          # Mudar para o diretório temporário
+          # Garantir que o Dockerfile tem permissões corretas
+          chmod 644 $TEMP_DIR/Dockerfile
+          
+          # Mostrar conteúdo do Dockerfile
+          echo "Dockerfile contents:"
+          cat $TEMP_DIR/Dockerfile
+          
+          # Mudar para o diretório de build
           cd $TEMP_DIR
           echo "Current working directory: $(pwd)"
           
-          # Verificar Dockerfile
-          if [ -f "Dockerfile" ]; then
-            echo "Dockerfile found in temp directory"
-            cat Dockerfile
-          else
-            echo "Dockerfile not found in temp directory"
-            exit 1
-          fi
+          # Verificar se o Docker daemon está rodando
+          sudo systemctl status docker || sudo systemctl start docker
           
-          # Construir imagem
+          # Construir imagem com contexto explícito
           echo "Building Docker image..."
-          sudo docker build -t hackaton-backend:latest .
+          sudo docker build --no-cache -t hackaton-backend:latest -f $TEMP_DIR/Dockerfile $TEMP_DIR
           
-          # Limpar diretório temporário
+          # Verificar se a imagem foi criada
+          echo "Checking built image:"
+          sudo docker images | grep hackaton-backend
+          
+          # Limpar
           cd $GITHUB_WORKSPACE
-          rm -rf $TEMP_DIR
+          sudo rm -rf $TEMP_DIR
           
       - name: Build frontend Docker image
         run: |
