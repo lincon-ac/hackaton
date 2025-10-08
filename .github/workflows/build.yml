@@ -101,21 +101,11 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        
-      - name: Build Backend Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./DotNetApp
-          push: false
-          load: true
-          tags: hackaton-backend:latest
 
-      - name: Run Backend Container
+      - name: Build and run backend
         run: |
+          docker build -t hackaton-backend:latest ./DotNetApp
           docker run -d --name hackaton-backend -p 80:80 hackaton-backend:latest
-
-      - name: Install Docker
-        run: |
           echo "Installing Docker using convenience script..."
           
           # Parar e remover todos os containers em execução
