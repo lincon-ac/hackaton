@@ -43,13 +43,11 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '18.x'
-        cache: 'npm'
-        cache-dependency-path: './ReactNativeApp/package-lock.json'
         
     - name: Install dependencies
       run: |
         cd ReactNativeApp
-        npm install
+        npm install --legacy-peer-deps
         
     - name: Run linting
       run: |
