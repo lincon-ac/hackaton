@@ -101,29 +101,39 @@ jobs:
           
       - name: Install Docker
         run: |
-          echo "Installing Docker..."
-          # Add Docker's official GPG key (non-interactive)
-          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo DEBIAN_FRONTEND=noninteractive apt-key add -
+          echo "Installing Docker using package download..."
           
-          # Add Docker repository
-          sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" -y
+          # Remove old versions if exist
+          sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
           
-          # Update package list
-          sudo DEBIAN_FRONTEND=noninteractive apt-get update
+          # Download Docker package
+          wget https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/amd64/docker-ce_24.0.6-1~ubuntu.22.04~jammy_amd64.deb
+          wget https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/amd64/docker-ce-cli_24.0.6-1~ubuntu.22.04~jammy_amd64.deb
+          wget https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/amd64/containerd.io_1.6.24-1_amd64.deb
           
-          # Install Docker (non-interactive)
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io
+          # Install dependencies
+          sudo apt-get update
+          sudo apt-get install -y ./containerd.io_1.6.24-1_amd64.deb
+          sudo apt-get install -y ./docker-ce-cli_24.0.6-1~ubuntu.22.04~jammy_amd64.deb
+          sudo apt-get install -y ./docker-ce_24.0.6-1~ubuntu.22.04~jammy_amd64.deb
           
-          # Start Docker daemon
-          sudo nohup dockerd &
+          # Start Docker daemon in background
+          sudo systemctl start docker || sudo dockerd > /dev/null 2>&1 &
           
-          # Wait for Docker to start
-          echo "Waiting for Docker daemon to start..."
-          sleep 10
+          # Wait for Docker to be available
+          echo "Waiting for Docker to start..."
+          for i in {1..30}; do
+            if sudo docker info >/dev/null 2>&1; then
+              echo "Docker is running"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 1
+          done
           
-          # Test Docker installation
-          sudo docker --version
-          sudo docker info
+          # Verify installation
+          sudo docker version
+          echo "Docker installation completed"
           
       - name: List workspace contents
         run: |
