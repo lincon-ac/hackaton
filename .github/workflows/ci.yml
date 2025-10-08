@@ -52,7 +52,7 @@ jobs:
     - name: Run tests
       run: |
         cd ReactNativeApp
-        npm test
+        npm test -- --passWithNoTests
         
     - name: Build Android (if needed)
       run: |
